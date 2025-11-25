@@ -9,7 +9,7 @@ class MultiHiertt(BaseTask):
             description="MultiHiertt: Numerical Reasoning over Multi Hierarchical Tabular and Textual Data",
             reference="https://github.com/psunlpgroup/MultiHiertt",
             dataset={
-                "path": "Linq-AI-Research/FinanceRAG",
+                "path": "./data",
                 "subset": "MultiHiertt",
             },
             type="RAG",

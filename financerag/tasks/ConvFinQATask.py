@@ -9,7 +9,7 @@ class ConvFinQA(BaseTask):
             description="ConvFinQA: Exploring the Chain of Numerical Reasoning in Conversational Finance Question Answering",
             reference="https://github.com/czyssrs/ConvFinQA",
             dataset={
-                "path": "Linq-AI-Research/FinanceRAG",
+                "path": "./data",
                 "subset": "ConvFinQA",
             },
             type="RAG",

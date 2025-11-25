@@ -9,7 +9,7 @@ class TATQA(BaseTask):
             description="TAT-QA: A Question Answering Benchmark on a Hybrid of Tabular and Textual Content in Finance",
             reference="https://github.com/NExTplusplus/TAT-QA",
             dataset={
-                "path": "Linq-AI-Research/FinanceRAG",
+                "path": "./data",
                 "subset": "TATQA",
             },
             type="RAG",

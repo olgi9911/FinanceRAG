@@ -177,6 +177,7 @@ class HFDataLoader:
                 data_files=self.corpus_file,
                 streaming=self.streaming,
                 keep_in_memory=self.keep_in_memory,
+                split="train",
             )
 
         corpus_ds = cast(Dataset, corpus_ds)
@@ -210,6 +211,7 @@ class HFDataLoader:
                 data_files=self.query_file,
                 streaming=self.streaming,
                 keep_in_memory=self.keep_in_memory,
+                split="train",
             )
         queries_ds = cast(Dataset, queries_ds)
         queries_ds = queries_ds.cast_column("_id", Value("string"))
