@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import argparse
 
-from financerag.retrieval import DenseRetrieval
+from financerag.retrieval import DenseRetrieval, HybridRetrieval
 from financerag.tasks import ConvFinQA, FinanceBench, FinDER, FinQA, FinQABench, MultiHiertt, TATQA
 
 TASK = {
@@ -41,7 +41,7 @@ task = TASK[args.task]()
 # Create a wrapper class for BGE-M3 model to make it compatible with the DenseRetrieval interface.
 class BGEM3Encoder:
     def __init__(self, model_name_or_path='BAAI/bge-m3'):
-        """Initialize BGE-M3 model for encoding queries and documents."""
+        """Initialize BGE-M3 model for encoding queries and documents with both dense and sparse representations."""
         import torch
         
         # Check if CUDA is available
@@ -55,8 +55,20 @@ class BGEM3Encoder:
             device=device
         )
     
-    def encode_queries(self, queries, batch_size=32, **kwargs):
-        """Encode queries using BGE-M3 model."""
+    def encode_queries(self, queries, batch_size=32, return_dense=True, return_sparse=False, **kwargs):
+        """
+        Encode queries using BGE-M3 model with support for both dense and sparse representations.
+        
+        Args:
+            queries: List of query strings
+            batch_size: Batch size for encoding
+            return_dense: Whether to return dense embeddings
+            return_sparse: Whether to return sparse (lexical) embeddings
+            **kwargs: Additional arguments
+            
+        Returns:
+            Dictionary with 'dense_vecs' and optionally 'lexical_weights'
+        """
         # Handle different input formats (list of strings or list of dicts)
         if isinstance(queries, list) and len(queries) > 0:
             if isinstance(queries[0], dict):
@@ -65,14 +77,31 @@ class BGEM3Encoder:
         embeddings = self.model.encode(
             queries,
             batch_size=batch_size,
-            return_dense=True,
-            return_sparse=False,
+            return_dense=return_dense,
+            return_sparse=return_sparse,
             return_colbert_vecs=False
-        )['dense_vecs']
+        )
+        
+        # For backward compatibility: if only dense is requested, return just the vectors
+        if return_dense and not return_sparse:
+            return embeddings['dense_vecs']
+        
         return embeddings
     
-    def encode_corpus(self, corpus, batch_size=32, **kwargs):
-        """Encode corpus documents using BGE-M3 model."""
+    def encode_corpus(self, corpus, batch_size=32, return_dense=True, return_sparse=False, **kwargs):
+        """
+        Encode corpus documents using BGE-M3 model with support for both dense and sparse representations.
+        
+        Args:
+            corpus: List of corpus documents (strings or dicts)
+            batch_size: Batch size for encoding
+            return_dense: Whether to return dense embeddings
+            return_sparse: Whether to return sparse (lexical) embeddings
+            **kwargs: Additional arguments
+            
+        Returns:
+            Dictionary with 'dense_vecs' and optionally 'lexical_weights'
+        """
         # Handle different input formats (list of strings or list of dicts)
         if isinstance(corpus, list) and len(corpus) > 0:
             if isinstance(corpus[0], dict):
@@ -86,27 +115,39 @@ class BGEM3Encoder:
         embeddings = self.model.encode(
             corpus,
             batch_size=batch_size,
-            return_dense=True,
-            return_sparse=False,
+            return_dense=return_dense,
+            return_sparse=return_sparse,
             return_colbert_vecs=False
-        )['dense_vecs']
+        )
+        
+        # For backward compatibility: if only dense is requested, return just the vectors
+        if return_dense and not return_sparse:
+            return embeddings['dense_vecs']
+        
         return embeddings
 
 
-# Step 4: Initialize BGE-M3 Retriever
-# ------------------------------------
-# Initialize the retrieval model using BGE-M3. This model will be responsible
-# for encoding both the queries and documents into embeddings.
+# Step 4: Initialize BGE-M3 Hybrid Retriever
+# --------------------------------------------
+# Initialize the hybrid retrieval model using BGE-M3. This model will use both
+# dense (semantic) and sparse (lexical) representations for better retrieval.
+# You can adjust dense_weight and sparse_weight to tune the balance.
 encoder_model = BGEM3Encoder(model_name_or_path='BAAI/bge-m3')
 
-retrieval_model = DenseRetrieval(
-    model=encoder_model
+retrieval_model = HybridRetrieval(
+    model=encoder_model,
+    batch_size=32,
+    dense_weight=0.5,    # Weight for dense (semantic) similarity
+    sparse_weight=0.5,   # Weight for sparse (lexical) matching
 )
+
+print(f"Using Hybrid Retrieval: Dense weight={retrieval_model.dense_weight}, Sparse weight={retrieval_model.sparse_weight}")
 
 
 # Step 5: Perform retrieval
 # ---------------------
-# Use the model to retrieve relevant documents for given queries.
+# Use the hybrid model to retrieve relevant documents for given queries.
+# This combines dense and sparse signals for better retrieval performance.
 
 retrieval_result = task.retrieve(
     retriever=retrieval_model
