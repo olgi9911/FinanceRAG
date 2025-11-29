@@ -1,9 +1,40 @@
 import logging
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 from financerag.common import CrossEncoder, Reranker
 
 logger = logging.getLogger(__name__)
+
+
+def format_qwen3_query(query: str, instruction: Optional[str] = None) -> str:
+    """
+    Format query for Qwen3-Reranker models.
+    
+    Args:
+        query (`str`): The query text.
+        instruction (`Optional[str]`): Task instruction. If None, uses default retrieval instruction.
+    
+    Returns:
+        `str`: Formatted query string.
+    """
+    prefix = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
+    if instruction is None:
+        instruction = "Given a web search query, retrieve relevant passages that answer the query"
+    return f"{prefix}<Instruct>: {instruction}\n<Query>: {query}\n"
+
+
+def format_qwen3_document(document: str) -> str:
+    """
+    Format document for Qwen3-Reranker models.
+    
+    Args:
+        document (`str`): The document text.
+    
+    Returns:
+        `str`: Formatted document string.
+    """
+    suffix = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+    return f"<Document>: {document}{suffix}"
 
 
 # Adapted from https://github.com/beir-cellar/beir/blob/main/beir/reranking/rerank.py
@@ -24,16 +55,29 @@ class CrossEncoderReranker(Reranker):
             the top-k documents using the cross-encoder model.
     """
 
-    def __init__(self, model: CrossEncoder):
+    def __init__(
+        self, 
+        model: CrossEncoder,
+        query_formatter: Optional[Callable[[str], str]] = None,
+        document_formatter: Optional[Callable[[str], str]] = None
+    ):
         """
         Initializes the `CrossEncoderReranker` class with a cross-encoder model.
 
         Args:
             model (`CrossEncoder`):
                 A cross-encoder model implementing the `CrossEncoder` protocol from the `sentence-transformers` library.
+            query_formatter (`Optional[Callable[[str], str]]`):
+                Optional function to format queries before passing to the model.
+                For Qwen3 models, use a lambda like: `lambda q: format_qwen3_query(q, instruction="...")`.
+            document_formatter (`Optional[Callable[[str], str]]`):
+                Optional function to format documents before passing to the model.
+                For Qwen3 models, use `format_qwen3_document`.
         """
         self.model: CrossEncoder = model
         self.results: Dict[str, Dict[str, float]] = {}
+        self.query_formatter = query_formatter
+        self.document_formatter = document_formatter
 
     def rerank(
             self,
@@ -81,7 +125,16 @@ class CrossEncoderReranker(Reranker):
                             + " "
                             + corpus[doc_id].get("text", "")
                     ).strip()
-                    sentence_pairs.append([queries[query_id], corpus_text])
+                    
+                    # Format query and document if formatters are provided
+                    query_text = queries[query_id]
+                    if self.query_formatter is not None:
+                        query_text = self.query_formatter(query_text)
+                    
+                    if self.document_formatter is not None:
+                        corpus_text = self.document_formatter(corpus_text)
+                    
+                    sentence_pairs.append([query_text, corpus_text])
 
             else:
                 for doc_id in results[query_id]:
@@ -91,7 +144,16 @@ class CrossEncoderReranker(Reranker):
                             + " "
                             + corpus[doc_id].get("text", "")
                     ).strip()
-                    sentence_pairs.append([queries[query_id], corpus_text])
+                    
+                    # Format query and document if formatters are provided
+                    query_text = queries[query_id]
+                    if self.query_formatter is not None:
+                        query_text = self.query_formatter(query_text)
+                    
+                    if self.document_formatter is not None:
+                        corpus_text = self.document_formatter(corpus_text)
+                    
+                    sentence_pairs.append([query_text, corpus_text])
 
         #### Starting to Rerank using cross-attention
         logger.info(f"Starting To Rerank Top-{top_k}....")

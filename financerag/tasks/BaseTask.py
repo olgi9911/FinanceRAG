@@ -91,7 +91,7 @@ class BaseTask:
                 # hf_repo=dataset_path,
                 data_folder=dataset_path,
                 subset=subset,
-                keep_in_memory=False,
+                keep_in_memory=True,
             ).load()
 
             self.queries = {query["id"]: query["text"] for query in queries}
