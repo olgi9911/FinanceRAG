@@ -55,12 +55,12 @@ encoder_model = SentenceTransformerEncoder(
     # doc_prompt='passage: ',
 )
 
-if hasattr(encoder_model, 'model'):
-    encoder_model.model.max_seq_length = 8192
-elif hasattr(encoder_model, 'q_model'):
-    encoder_model.q_model.max_seq_length = 8192
-    if hasattr(encoder_model, 'doc_model'):
-        encoder_model.doc_model.max_seq_length = 8192
+# if hasattr(encoder_model, 'model'):
+#   encoder_model.model.max_seq_length = 8192
+# elif hasattr(encoder_model, 'q_model'):
+#     encoder_model.q_model.max_seq_length = 8192
+#     if hasattr(encoder_model, 'doc_model'):
+#         encoder_model.doc_model.max_seq_length = 8192
 # retrieval_model = DenseRetrieval(
 #     model=encoder_model,
 # )
