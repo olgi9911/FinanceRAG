@@ -63,6 +63,7 @@ parser.add_argument("--rerank_top_k", type=int, default=100, help="Number of doc
 parser.add_argument("--persist_directory", type=str, default="./chroma", help="Directory for ChromaDB persistence")
 parser.add_argument("--no_persist", action="store_true", help="Disable ChromaDB persistence (in-memory only)")
 parser.add_argument("--output_dir", type=str, default="./results/hybrid", help="Directory to save results")
+parser.add_argument("--reranker", type=str, default="BAAI/bge-reranker-v2-m3", help="Cross-Encoder model for reranking")
 
 args = parser.parse_args()
 
@@ -150,10 +151,10 @@ except ImportError as e:
 logger.info(f"\n[Step 4/4] Reranking top-{args.rerank_top_k} documents...")
 
 reranker_model = CrossEncoder(
-    "BAAI/bge-reranker-v2-m3",
+    args.reranker,
     trust_remote_code=True,
     # num_labels=1,
-    max_length=8192,
+    # max_length=1024, # 8192
 )
 
 reranker = CrossEncoderReranker(model=reranker_model)
