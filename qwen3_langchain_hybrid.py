@@ -64,7 +64,7 @@ parser.add_argument("--rerank_top_k", type=int, default=100, help="Number of doc
 parser.add_argument("--persist_directory", type=str, default="./chroma", help="Directory for ChromaDB persistence")
 parser.add_argument("--no_persist", action="store_true", help="Disable ChromaDB persistence (in-memory only)")
 parser.add_argument("--output_dir", type=str, default="./results/hybrid", help="Directory to save results")
-parser.add_argument("--reranker", type=str, default="BAAI/bge-reranker-v2-m3", help="Cross-Encoder model for reranking")
+parser.add_argument("--reranker", type=str, default=None, help="Cross-Encoder model for reranking")
 
 args = parser.parse_args()
 
@@ -149,29 +149,32 @@ except ImportError as e:
 # ============================================================================
 # Step 4: Rerank with Cross-Encoder
 # ============================================================================
-logger.info(f"\n[Step 4/4] Reranking top-{args.rerank_top_k} documents...")
+if args.reranker:
+    logger.info(f"\n[Step 4/4] Reranking top-{args.rerank_top_k} documents...")
 
-'''reranker_model = CrossEncoder(
-    args.reranker,
-    trust_remote_code=True,
-    # num_labels=1,
-    # max_length=1024, # 8192
-)
+    if args.reranker == "jinaai/jina-reranker-v3":
+        logger.info("Using Jina Reranker (jinaai/jina-reranker-v3)")
+        reranker = JinaListwiseReranker(
+        model_name="jinaai/jina-reranker-v3",
+        )
+    else:
+        logger.info(f"Using Cross-Encoder Reranker ({args.reranker})")
+        reranker_model = CrossEncoder(
+            args.reranker,
+            trust_remote_code=True,
+            # num_labels=1,
+            # max_length=1024, # 8192
+        )
+        reranker = CrossEncoderReranker(model=reranker_model)
 
-reranker = CrossEncoderReranker(model=reranker_model)'''
+    reranked_results = task.rerank(
+        reranker=reranker,
+        results=retrieval_results,
+        top_k=args.rerank_top_k,
+        batch_size=args.batch_size
+    )
 
-reranker = JinaListwiseReranker(
-    model_name="jinaai/jina-reranker-v3",
-)
-
-reranked_results = task.rerank(
-    reranker=reranker,
-    results=retrieval_results,
-    top_k=args.rerank_top_k,
-    batch_size=args.batch_size
-)
-
-logger.info(f"✓ Reranking complete for {len(reranked_results)} queries")
+    logger.info(f"✓ Reranking complete for {len(reranked_results)} queries")
 
 # ============================================================================
 # Step 5: Save Results
@@ -191,9 +194,6 @@ logger.info("=" * 80)
 logger.info(f"Task: {args.task}")
 logger.info(f"Method: LangChain EnsembleRetriever (BM25 + Dense + RRF)")
 logger.info(f"Weights: BM25={hybrid_retriever.bm25_weight:.2f}, Dense={hybrid_retriever.dense_weight:.2f}")
-logger.info(f"Retrieved: {args.retrieval_top_k} documents per query")
-logger.info(f"Reranked: {args.rerank_top_k} documents per query")
-logger.info(f"Results: {output_path}")
 logger.info("=" * 80)
 
 print(f"\n✅ Done! Check results in: {output_path}")

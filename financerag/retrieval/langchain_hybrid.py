@@ -54,7 +54,8 @@ class LangChainHybridRetrieval(Retrieval):
     
     def __init__(
         self,
-        encoder_model: Encoder,
+        encoder_model: Optional[Encoder] = None,
+        embeddings: Optional[Embeddings] = None,
         bm25_weight: float = 0.5,
         dense_weight: float = 0.5,
         persist_directory: Optional[str] = "./chromadb",
@@ -82,6 +83,7 @@ class LangChainHybridRetrieval(Retrieval):
             )
         
         self.encoder_model = encoder_model
+        self.embeddings = embeddings
         self.bm25_weight = bm25_weight
         self.dense_weight = dense_weight
         self.persist_directory = persist_directory
@@ -196,8 +198,12 @@ class LangChainHybridRetrieval(Retrieval):
         # 2. Create Dense retriever using ChromaDB
         logger.info("Building dense retriever with ChromaDB...")
         
-        if self._embeddings_wrapper is None:
-            self._embeddings_wrapper = self._create_embeddings_wrapper()
+        if self.embeddings:
+            embedding_function = self.embeddings
+        else:
+            if self._embeddings_wrapper is None:
+                self._embeddings_wrapper = self._create_embeddings_wrapper()
+            embedding_function = self._embeddings_wrapper
         
         # Build ChromaDB vector store
         if self.persist_directory:
@@ -216,13 +222,13 @@ class LangChainHybridRetrieval(Retrieval):
                     vectorstore = Chroma(
                         client=client,
                         collection_name=self.collection_name,
-                        embedding_function=self._embeddings_wrapper
+                        embedding_function=embedding_function
                     )
                 else:
                     logger.info(f"Creating new collection: {self.collection_name}")
                     vectorstore = Chroma.from_documents(
                         documents=documents,
-                        embedding=self._embeddings_wrapper,
+                        embedding=embedding_function,
                         client=client,
                         collection_name=self.collection_name
                     )
@@ -230,7 +236,7 @@ class LangChainHybridRetrieval(Retrieval):
                 logger.warning(f"Failed to use persistent client: {e}. Falling back to from_documents().")
                 vectorstore = Chroma.from_documents(
                     documents=documents,
-                    embedding=self._embeddings_wrapper,
+                    embedding=embedding_function,
                     persist_directory=self.persist_directory,
                     collection_name=self.collection_name
                 )
@@ -238,7 +244,7 @@ class LangChainHybridRetrieval(Retrieval):
             logger.info("Using in-memory ChromaDB (no persistence)")
             vectorstore = Chroma.from_documents(
                 documents=documents,
-                embedding=self._embeddings_wrapper,
+                embedding=embedding_function,
                 collection_name=self.collection_name
             )
         
