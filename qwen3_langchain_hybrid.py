@@ -31,6 +31,7 @@ from sentence_transformers import CrossEncoder
 from financerag.retrieval import SentenceTransformerEncoder
 from financerag.retrieval.langchain_hybrid import LangChainHybridRetrieval
 from financerag.rerank import CrossEncoderReranker
+from financerag.rerank import JinaListwiseReranker
 from financerag.tasks import ConvFinQA, FinanceBench, FinDER, FinQA, FinQABench, MultiHiertt, TATQA
 
 TASK = {
@@ -150,14 +151,18 @@ except ImportError as e:
 # ============================================================================
 logger.info(f"\n[Step 4/4] Reranking top-{args.rerank_top_k} documents...")
 
-reranker_model = CrossEncoder(
+'''reranker_model = CrossEncoder(
     args.reranker,
     trust_remote_code=True,
     # num_labels=1,
     # max_length=1024, # 8192
 )
 
-reranker = CrossEncoderReranker(model=reranker_model)
+reranker = CrossEncoderReranker(model=reranker_model)'''
+
+reranker = JinaListwiseReranker(
+    model_name="jinaai/jina-reranker-v3",
+)
 
 reranked_results = task.rerank(
     reranker=reranker,
