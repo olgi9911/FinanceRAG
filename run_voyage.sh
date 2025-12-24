@@ -1,0 +1,7 @@
+python voyage_hybrid.py --task ConvFinQA --batch_size 4 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "BAAI/bge-reranker-v2-m3"
+python voyage_hybrid.py --task FinanceBench --batch_size 16 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "jinaai/jina-reranker-v3"
+python voyage_hybrid.py --task FinDER --batch_size 1 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "BAAI/bge-reranker-v2-m3"
+python voyage_hybrid.py --task FinQA --batch_size 16 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "jinaai/jina-reranker-v3"
+python voyage_hybrid.py --task FinQABench --batch_size 16 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "jinaai/jina-reranker-v3"
+python voyage_hybrid.py --task MultiHiertt --batch_size 16 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "jinaai/jina-reranker-v3"
+python voyage_hybrid.py --task TATQA --batch_size 16 --bm25_weight 0.5 --dense_weight 0.5 --persist_directory ./chroma_voyage --output_dir ./results/hybrid_voyage_specific_reranker --reranker "BAAI/bge-reranker-v2-m3"
